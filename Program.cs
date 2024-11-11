@@ -3,7 +3,8 @@
     // enum de tipos de pieza
     enum PieceType
     {
-        Queen
+        Queen,
+        CustomChessPiece
     }
 
     //este struct representa la posicion de la pieza y su tipo
@@ -25,57 +26,56 @@
     {
         int n = 64;
 
-        int numQueens = 8;
+        int numPieces = 8;
+        Console.Write("Enter the name of the custom chess piece: ");
+        string customPieceName = Console.ReadLine();
 
-        Piece[] pieces = new Piece[numQueens];
-        if (SolvePuzzle(n, pieces, 0, numQueens))
+
+        Console.Write("Choose piece type (1 for Queen, 2 for Custom Piece): ");
+        int pieceChoice = int.Parse(Console.ReadLine());
+        PieceType selectedType = pieceChoice == 1 ? PieceType.Queen : PieceType.CustomChessPiece;
+
+        Piece[] pieces = new Piece[numPieces];
+        if (SolvePuzzle(n, pieces, 0, numPieces, selectedType))
         {
-            PrintSolution(pieces, n);
+            PrintSolution(pieces, n, customPieceName);
+        }
+        else
+        {
+            Console.WriteLine("No solution found!");
         }
     }
 
     // * uso *backtracking* para solucionar el problema
-    static bool SolvePuzzle(int boardSize, Piece[] pieces, int currentPiece, int numQueens)
-    {
 
+    static bool SolvePuzzle(int boardSize, Piece[] pieces, int currentPiece, int numPieces, PieceType selectedType)
+    {
         if (currentPiece >= pieces.Length)
             return true;
 
-        PieceType currentType = PieceType.Queen;
-
-        //pruebo cada posicion posible en el tablero
         for (int row = 0; row < boardSize; row++)
         {
             for (int col = 0; col < boardSize; col++)
             {
-                if (IsSafe(pieces, currentPiece, row, col, currentType, boardSize))
+                if (IsSafe(pieces, currentPiece, row, col, selectedType, boardSize))
                 {
-                    //pongo la pieza
-                    pieces[currentPiece] = new Piece(row, col, currentType);
+                    pieces[currentPiece] = new Piece(row, col, selectedType);
 
-                    //pongo el resto de las piezas de forma recursiva
-                    if (SolvePuzzle(boardSize, pieces, currentPiece + 1, numQueens))
+                    if (SolvePuzzle(boardSize, pieces, currentPiece + 1, numPieces, selectedType))
                         return true;
                 }
             }
         }
-
         return false;
     }
 
     // * me fijo si es seguro poner la pieza en la posicion n
     static bool IsSafe(Piece[] pieces, int currentPiece, int row, int col, PieceType type, int boardSize)
     {
-        // me fijo en todas las piezas de ajedrez puestas anteriormente
         for (int i = 0; i < currentPiece; i++)
         {
-            int pieceRow = pieces[i].Row;
-            int pieceCol = pieces[i].Column;
-            PieceType pieceType = pieces[i].Type;
-
-            // me fijo si la posicion actual choca con la posicion de la pieza en i
-            if (IsUnderAttack(row, col, pieceRow, pieceCol, pieceType) ||
-                IsUnderAttack(pieceRow, pieceCol, row, col, type))
+            if (IsUnderAttack(row, col, pieces[i].Row, pieces[i].Column, type) ||
+                IsUnderAttack(pieces[i].Row, pieces[i].Column, row, col, type))
             {
                 return false;
             }
@@ -90,6 +90,7 @@
         switch (pieceType)
         {
             case PieceType.Queen:
+            case PieceType.CustomChessPiece:
                 // movimiento de peon
                 if (targetRow == pieceRow || targetCol == pieceCol)
                     return true;
@@ -98,32 +99,38 @@
                 if (Math.Abs(targetRow - pieceRow) == Math.Abs(targetCol - pieceCol))
                     return true;
 
+                // movimiento en L de caballo
+                if (pieceType == PieceType.CustomChessPiece && ((Math.Abs(targetRow - pieceRow) == 2 && Math.Abs(targetCol - pieceCol) == 1) || (Math.Abs(targetRow - pieceRow) == 1 && Math.Abs(targetCol - pieceCol) == 2)))
+                    return true;
                 break;
         }
         return false;
     }
 
-    static void PrintSolution(Piece[] pieces, int boardSize)
+    static void PrintSolution(Piece[] pieces, int boardSize, string customPieceName)
     {
-        char[,] board = new char[boardSize, boardSize];
+        Console.WriteLine("\nSolution found:");
 
-        // tablero vacio
-        for (int i = 0; i < boardSize; i++)
-            for (int j = 0; j < boardSize; j++)
-                board[i, j] = '.';
+        //* diferencio el custom de la reina
+        var queens = pieces.Where(p => p.Type == PieceType.Queen).ToList();
+        var customPieces = pieces.Where(p => p.Type == PieceType.CustomChessPiece).ToList();
 
-        // pongo fichas en el tablero
-        foreach (var piece in pieces)
+        if (queens.Any())
         {
-            board[piece.Row, piece.Column] = piece.Type == PieceType.Queen ? 'Q' : 'C';
+            Console.WriteLine("\nQueens:");
+            foreach (var queen in queens)
+            {
+                Console.WriteLine($"({queen.Row}, {queen.Column})");
+            }
         }
 
-        Console.WriteLine("\nSolution found:");
-        // imprimo la posicion de las reinas
-        Console.WriteLine("(row, column):");
-        for (int i = 0; i < pieces.Length; i++)
+        if (customPieces.Any())
         {
-            Console.WriteLine($"{pieces[i].Type}: ({pieces[i].Row}, {pieces[i].Column})");
+            Console.WriteLine($"\n{customPieceName}s:");
+            foreach (var customPiece in customPieces)
+            {
+                Console.WriteLine($"({customPiece.Row}, {customPiece.Column})");
+            }
         }
     }
 }
